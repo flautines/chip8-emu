@@ -88,4 +88,7 @@ typedef struct {
     
 } chip8_t;
 
+// Inicializa o reinicia la máquina CHIP-8
+void chip8_init(chip8_t *chip8);
+
 #endif
