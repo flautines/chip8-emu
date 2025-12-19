@@ -50,10 +50,37 @@ typedef struct {
     uint16_t I;
 
     // -- PILA (STACK) --
+    // Almacena direcciones de retorno cuando se llama a una subrutina.
+    uint16_t stack[STACK_SIZE];
 
+    // Puntero de Pila (Stack Pointer).
+    // Indica en qué nivel de la pila estamos actualmente
+    uint8_t sp;
 
+    // -- PANTALLA --
+    // Buffer de video monocromático.
+    // Aunque la pantalla es 2D (64x32), la representamos como un array 1D
+    // de tamaño 2048 (64*32).
+    // 1 = Píxel encendido, 0 = Píxel apagado.
+    uint8_t display[SCREEN_WIDTH * SCREEN_HEIGHT];
+    
+    // -- TECLADO --
+    // Almacena el estado actual de las 16 teclas.
+    // true = Presionada, false = Soltada.
+    bool keypad[NUM_KEYS];
 
+    // -- TEMPORIZADORES --
+    // Se decrementan automáticamnete a una frecuencia de 60Hz.
 
+    // Delay Timer: Se usa para cronometrar eventos del juego.
+    uint8_t delay_timer;
+
+    // Sound Timer: Mientras sea mayor que 0, el emulador debe emitir un tono.
+    uint8_t sound_timer;
+
+    // -- EXTRAS --
+    // Bandera para indicar si hay que dibujar en este cicle (optimización).
+    bool draw_flag;
     
 } chip8_t;
 
