@@ -143,6 +143,37 @@ void chip8_cycle(chip8_t *chip8) {
             chip8->V[x] += nn;
             break;
 
+        case 0x0800:
+            // 8xyN - Operaciones entre Vx y Vy. El último dígito ( N ) determina la operación
+            switch (opcode & 0x000F) {
+                // 8xy0 - LD Vx, Vy
+                // Asignación simple: Vx toma el valor de Vy
+                case 0x0:
+                    chip8->V[x] = chip8->V[y];
+                    break;
+                
+                // 0xy1 - OR Vx, Vy
+                // Bitwise OR: Enciende bits si alguno de los dos está encendido.
+                case 0x1:
+                    chip8->V[x] |= chip8->V[y];
+                    break;
+
+                // 8xy2 - AND Vx, Vy
+                // Bitwise AND: Mantiene bits solo si ambos están encendidos.
+                case 0x2:
+                    chip8->V[x] &= chip8->V[y];
+                    break;
+
+                // 8xy3 - XOR Vx, Vy
+                // Bitwise Exclusive OR: Enciende si son diferentes.
+                case 0x3:
+                    chip8->V[x] ^= chip8->V[y];
+                    break;
+
+                // ... (Pendiente ADD, SUB, SHR, etc.)
+            }
+            break;
+
         case 0xA000:
             // ANNN - LD I, addr (Establece el registro índice I en NNN)
             chip8->I = nnn;
