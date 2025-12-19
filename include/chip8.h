@@ -49,6 +49,10 @@ typedef struct {
     // Tiene 16 bits porque almacena direcciones de memoria (0x000 a 0xFFF).
     uint16_t I;
 
+    // Contador de Programa (Program Counter).
+    // Indica la dirección de memoria de la *siguiente* instrucción a ejecutar.
+    uint16_t pc;
+
     // -- PILA (STACK) --
     // Almacena direcciones de retorno cuando se llama a una subrutina.
     uint16_t stack[STACK_SIZE];
