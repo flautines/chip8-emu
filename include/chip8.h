@@ -90,6 +90,11 @@ typedef struct {
 
 // Inicializa o reinicia la máquina CHIP-8
 void chip8_init(chip8_t *chip8);
+
+// Ejecuta un cicle de CPU (una instrucción)
 void chip8_cycle(chip8_t *chip8);
+
+// Actualiza los temporizadores del sistema 60 veces/s
+void chip8_update_timers(chip8_t *chip8);
 
 #endif

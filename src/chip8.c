@@ -125,3 +125,17 @@ void chip8_cycle(chip8_t *chip8) {
             break;
     }
 }
+
+// Actualiza los temporizadores del sistema.
+// Esta función debe llamarse a una frecuencia de 60Hz.
+void chip8_update_timers(chip8_t *chip8) {
+    if (chip8->delay_timer > 0) {
+        chip8->delay_timer--;
+    }
+
+    if (chip8->sound_timer > 0) {
+        chip8->sound_timer--;
+        // Aquí podríamos poner un flag para que Raylib sepa que debe emitir sonido
+        // o manejar el audio directamente en el main loop revisando esta variable.
+    }
+}
