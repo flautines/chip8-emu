@@ -73,7 +73,26 @@ void chip8_cycle(chip8_t *chip8) {
     // -------------------------------
     // 2. DECODE & EXECUTE 
     // -------------------------------
-    // Uasmos el primer nibble (4 bits más altos) para categorizar la instrucción.
+    // Extraemos los componentes comunes de las instrucciones para no repetir esto en cada case.
+
+    // NNN: Dirección de 12 bits (Mascara 0x0FFF). Ej: 1NNN, ANNN.
+    uint16_t nnn = opcode & 0x0FFF;
+
+    // NN: Byte bajo de 8 bits (Mascara 0x00FF). Ej: 6XNN, 7XNN.
+    uint8_t nn = opcode & 0x00FF;
+
+    // N: Nibble bajo de 4 bits (Mascara 0x000F). Ej: DXYN.
+    uint8_t n = opcode & 0x000F;
+
+    // X: Segundo niblle. Hay que desplazarlo 8 bits a la derecha pra que sea un índice (0-15).
+    // EJ: En 0x6A00, queremos que X sea 0xA (10), no 0xA00.
+    uint8_t x = (opcode & 0x0F00) >> 8;
+
+    // Y: Tercer nibble. Desplazamos 4 bits a la derecha para obtener un índice (0-15).
+    // Ej: En 0x8X70, queremos  que Y sea 0x7 (7), no 0x70.
+    uint8_t y = (opcode & 0x00F0) >> 4;
+
+    // Usamos el primer nibble (4 bits más altos) para categorizar la instrucción.
     // Aplicamos una máscara AND con 0xF000.
 
     switch (opcode & 0xF000) {
@@ -82,12 +101,18 @@ void chip8_cycle(chip8_t *chip8) {
             switch (opcode) {
                 case 0x00E0:
                     // 00E0 - CLS (Clear Screen)
-                    // TODO: Implementar limpiar pantalla
+                    memset(chip8->display, 0, sizeof(chip8->display));
+                    chip8->draw_flag = true;    // Avisar a Raylib que redibuje
                     break;
+
                 case 0x00EE:
                     // 00EE - RET (Return from subroutine)
-                    // TODO: Implementar retorno de subrutina
+                    if (chip8->sp > 0) { // Protección básica contra underflow
+                        chip8->sp--;
+                        chip8->pc = chip8->stack[chip8->sp];
+                    }
                     break;
+
                 default:
                     // 0NNN - Sys addr (Ignorado en emuladores modernos)
                     break;
@@ -96,22 +121,31 @@ void chip8_cycle(chip8_t *chip8) {
         
         case 0x1000:
             // 1NNN - JP addr (Salto a dirección NNN)
-            // TODO: Implementar salto
+            chip8->pc = nnn;
+            break;
+
+        case 0x2000:
+            // 2NNN - CALL addr
+            if (chip8->sp < STACK_SIZE) { // Protección básica contra overflow
+                chip8->stack[chip8->sp] = chip8->pc;
+                chip8->sp++;
+                chip8->pc = nnn;
+            }
             break;
 
         case 0x6000:
             // 6XNN - LD Vx, byte (Carga el valor NN en el registro Vx)
-            // TODO: Implementar carga de registro
+            chip8->V[x] = nn;
             break;
 
         case 0x07000:
             // 7XNN - ADD Vx, byte (Suma NN a Vx sin acarreo)
-            // TODO: Implementar suma simple
+            chip8->V[x] += nn;
             break;
 
         case 0xA000:
             // ANNN - LD I, addr (Establece el registro índice I en NNN)
-            // TODO: Implementar set index
+            chip8->I = nnn;
             break;
 
         case 0xD000:
@@ -138,4 +172,36 @@ void chip8_update_timers(chip8_t *chip8) {
         // Aquí podríamos poner un flag para que Raylib sepa que debe emitir sonido
         // o manejar el audio directamente en el main loop revisando esta variable.
     }
+}
+
+// Carga un archivo ROM en la memoria del CHIP-8
+// Retorna true si tuvo éxito, false si falló.
+bool chip8_load_rom(chip8_t *chip8, const char *filename) {
+    // Abrimos el archivo en modo binario ("rb")
+    // Es CRÍTICO usar "rb" en Windows/Linux para no alterar los bytes de nueva línea.
+    FILE *rom = fopen(filename, "rb");
+    if (!rom) {
+        fprintf(stderr, "Error: No se pudo abrir la ROM %s\n", filename);
+        return false;
+    }
+
+    // Buscamos el tamaño del archivo
+    fseek(rom, 0, SEEK_END);    // Ir al final
+    long rom_size = ftell(rom); // Lee posición actual (tamaño)
+    rewind(rom);  // Volver al principio
+
+    // Verificamos si la ROM cabe en la memoria
+    // Espacio disponible = Total RAM (4096) - Inicio reservado (512)
+    if (rom_size > RAM_SIZE - START_ADDRESS) {
+        fprintf(stderr, "Error: La ROM es demasiado grande (%ld bytes)\n", rom_size);
+        fclose(rom);
+        return false;
+    }
+
+    // Leemos el archivo directamente hacia la memoria del emulador
+    // &chip8->memory[START_ADDRESS] es el puntero a la dirección 0x200
+    fread(&chip8->memory[START_ADDRESS], 1, rom_size, rom);
+
+    fclose(rom);
+    return true;
 }

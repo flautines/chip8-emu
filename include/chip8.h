@@ -97,4 +97,8 @@ void chip8_cycle(chip8_t *chip8);
 // Actualiza los temporizadores del sistema 60 veces/s
 void chip8_update_timers(chip8_t *chip8);
 
+// Carga un archivo ROM en la memoria del CHIP-8
+// Retorna true si tuvo éxito, false si falló.
+bool chip8_load_rom(chip8_t *chip8, const char *filename);
+
 #endif
