@@ -170,7 +170,60 @@ void chip8_cycle(chip8_t *chip8) {
                     chip8->V[x] ^= chip8->V[y];
                     break;
 
-                // ... (Pendiente ADD, SUB, SHR, etc.)
+                // 8xy4 - ADD Vx, Vy
+                // Suma Vy a Vx. VF se pone a 1 si hay acarreo (resultado > 255).
+                case 0x4: {
+                    // Usamos uint16_t para detectar el resultado real antes del corte
+                    uint16_t sum = chip8->V[x] + chip8->V[y];
+
+                    if (sum > 255) {
+                        chip8->V[0xF] = 1;
+                    } else {
+                        chip8->V[0xF] = 0;
+                    }
+
+                    // Guardamos solo los 8 bits bajos
+                    chip8->V[x] = sum & 0xFF;
+                    break;
+                }
+
+                // 8xy5 - SUB Vx, Vy
+                // Vx = Vx - Vy
+                case 0x5:
+                    if (chip8->V[x] > chip8->V[y]) {
+                        chip8->V[0xF] = 1;  // No hubo 'borrow' (resultado positivo)
+                    } else {
+                        chip8->V[0xF] = 0;  // Sí hubo 'borrow' (resultado negativo)
+                    }
+                    chip8->V[x] -= chip8->V[y];
+                    break;
+                
+                // 8xy7 - SUBN Vx, Vy
+                // Vx = Vy - Vx (Nota el orden invertido de la resta)
+                case 0x7:
+                    if (chip8->V[y] > chip8->V[x]) {
+                        chip8->V[0xF] = 1;
+                    } else {
+                        chip8->V[0xF] = 0;
+                    }
+                    chip8->V[x] = chip8->V[y] - chip8->V[x];
+                break;
+
+                // 8xy6 - SHR Vx {, Vy}
+                // Desplazamiento a la derecha (División por 2)
+                case 0x6:
+                    // Guardamos el bit menos significativo (LSB) en VF antes de desplazar
+                    chip8->V[0xF] = (chip8->V[x] & 0x1);
+                    chip8->V[x] >>= 1;
+                    break;
+
+                // 8xyE - SHL Vx, {, Vy}
+                // Desplazamiento a la izquierda (Multiplicación por 2)
+                case 0xE:
+                    // Guardamos el bit más significativo (MSB) en VF
+                    chip8->V[0xF] = (chip8->V[x] & 0x80) >> 7;
+                    chip8->V[x] <<= 1;
+                    break;
             }
             break;
 
@@ -179,6 +232,10 @@ void chip8_cycle(chip8_t *chip8) {
             chip8->I = nnn;
             break;
 
+        case 0xC000:
+            // CxNN - RND Vx, NN
+            chip8->V[x] = (rand() % 256) & nn;
+                        
         case 0xD000:
             // DXYN - DRW Vx, Vy, nibble (Dibuja sprite)
             // TODO: Implementar gráficos
