@@ -353,7 +353,26 @@ void chip8_cycle(chip8_t *chip8) {
 
         case 0xF000:
             switch (nn) {
-                // ... (otros casos de Fx como los timers TODO)...
+                // Fx07 - LD Vx, DT
+                // Asigna el valor del Delay Timer al registro Vx.
+                // Útil para que los juegos midan el tiempo transcurrido.
+                case 0x07:
+                    chip8->V[x] = chip8->delay_timer;
+                    break;
+
+                // Fx15 - LD DT, Vx
+                // Asigna el valor de Vx al Delay Timer.
+                // Esto inicia una cuenta atrás.
+                case 0x15:
+                    chip8->delay_timer = chip8->V[x];
+                    break;
+
+                // Fx18 - LD ST, Vx
+                // Asigna el valor de Vx al Sound Timer.
+                // Mientras ST > 0, la máquina emitirá un sonido.
+                case 0x18:
+                    chip8->sound_timer = chip8->V[x];
+                    break;
 
                 // Fx0A - LD Vx, K
                 // Espera por una tecla (Bloqueante)
