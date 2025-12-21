@@ -207,7 +207,7 @@ void chip8_cycle(chip8_t *chip8) {
                         chip8->V[0xF] = 0;
                     }
                     chip8->V[x] = chip8->V[y] - chip8->V[x];
-                break;
+                    break;
 
                 // 8xy6 - SHR Vx {, Vy}
                 // Desplazamiento a la derecha (División por 2)
@@ -235,11 +235,72 @@ void chip8_cycle(chip8_t *chip8) {
         case 0xC000:
             // CxNN - RND Vx, NN
             chip8->V[x] = (rand() % 256) & nn;
-                        
-        case 0xD000:
-            // DXYN - DRW Vx, Vy, nibble (Dibuja sprite)
-            // TODO: Implementar gráficos
             break;
+        
+        // DXYN - DRW Vx, Vy, nibble (Dibuja sprite)
+        // Dibuja un sprite en las coordenadas (Vx, Vy) con una altura de N píxeles.
+        case 0xD000: {
+            // 1. Obtenemos las coordenadas inciciales de los registros.
+            //    Aplicamos módulo (%) para que si se pasan de 64/32, den a vuelta.
+            uint8_t x_coord = chip8->V[x] % SCREEN_WIDTH;
+            uint8_t y_coord = chip8->V[y] % SCREEN_HEIGHT;
+            uint8_t height = n; // La altura es el último nibble del opcode
+
+            // 2. Inicializamos el flag de colisión (VF) a 0.
+            //    Solo se pondrá a 1 si detectamos que apagamos un píxel.
+            chip8->V[0xF] = 0;
+
+            // 3. Bucle para cada FILA del sprite (altura)
+            for (int row = 0; row < height; row++) {
+
+                // Obtenemos el byte de datos del sprite desde la memoria.
+                // La dirección es I + la fila actual.
+                uint8_t sprite_byte = chip8->memory[chip8->I + row];
+
+                // 4. Bucle para cada PÍXEL (columna) de la fila (siempre 8 píxeles de ancho)
+                for (int col = 0; col < 8; col++) {
+
+                    // Comprobamos cada bit del sprite_byte, empezando por el más significativo (izquierda).
+                    // Usamos una máscara (0x80 = 10000000) y la desplazamos a la derecha según la columna.
+                    uint8_t sprite_pixel = sprite_byte & (0x80 >> col);
+
+                    // Si el píxel del sprite es 0 (transparente), no hacemos nada.
+                    // Solo dibujamos si el bit del sprite es 1.
+                    if (sprite_pixel != 0) {
+                        
+                        // Calculamos la posición real en el buffer de pantalla 1D.
+                        // Posición X actual = x_coord inicial + columna actual del bucle
+                        // Posición Y actual = y_coord inicial + fila actual del bucle
+                        int screen_x = x_coord + col;
+                        int screen_y = y_coord + row;
+
+                        // -- CLIPPING --
+                        // Si el píxel se sale de la pantalla por la derecha o por abajo, lo ignoramos.
+                        if (screen_x >= SCREEN_WIDTH || screen_y >= SCREEN_HEIGHT) {
+                            continue;
+                        }
+
+                        // Índice en el array lineal display[]
+                        int screen_index = screen_x + (screen_y * SCREEN_WIDTH);
+
+                        // -- DETECCIÓN DE COLISIÓN --
+                        // Si el píxel en la pantalla ya está encendido (1) y vamos a pintar (1),
+                        // ocurrirá una colisión (1^1=0). Marcamos VF.
+                        if (chip8->display[screen_index] == 1) {
+                            chip8->V[0xF] = 1;
+                        }
+
+                        // -- DIBUJADO (XOR) --
+                        // Aplicamos XOR al píxel de la pantalla.
+                        chip8->display[screen_index] ^= 1;
+                    }
+                }
+            }
+
+            // Avisamos al sistema principal que la pantalla ha cambiado y necesita repintarse.
+            chip8->draw_flag = true;
+            break;
+        }
 
         default:
             // Si llegamos aquí, encontramos un opcode desconocido.
