@@ -124,12 +124,44 @@ void chip8_cycle(chip8_t *chip8) {
             chip8->pc = nnn;
             break;
 
+        // 2NNN - CALL addr
         case 0x2000:
-            // 2NNN - CALL addr
             if (chip8->sp < STACK_SIZE) { // Protección básica contra overflow
                 chip8->stack[chip8->sp] = chip8->pc;
                 chip8->sp++;
                 chip8->pc = nnn;
+            }
+            break;
+        
+        // 3XNN - SE Vx, byte (Skip if Equal)
+        // Salta la siguiente instrucción si Vx == NN
+        case 0x3000:
+            if (chip8->V[x] == nn) {
+                chip8->pc += 2;
+            }
+            break;
+
+        // 4XNN - SNE Vx, byte (Skip if Not Equal)
+        // Salta si Vx != NN
+        case 0x4000:
+            if (chip8->V[x] != nn) {
+                chip8->pc += 2;
+            }
+            break;
+
+        // 5XY0 - SE Vx, Vy (Skip if Equal Registers)
+        // Salta si Vx == Vy
+        case 0x5000:
+            if (chip8->V[x] == chip8->V[y]) {
+                chip8->pc += 2;
+            }
+            break;
+
+        // 9XY0 - SNE Vx, Vy (Skip if Not Equal Registers)
+        // Salta si Vx != Vy
+        case 0x9000:
+            if (chip8->V[x] != chip8->V[y]) {
+                chip8->pc += 2;
             }
             break;
 
