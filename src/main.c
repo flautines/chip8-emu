@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include "raylib.h"
 #include "chip8.h"
@@ -59,6 +60,22 @@ int main(int argc, char **argv) {
     // 3. Inicialización de Raylib (La Ventana)
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Emulador CHIP-8 en C");
 
+    // 1. Inicializar Audio
+    InitAudioDevice();
+    if (!IsAudioDeviceReady()) {
+        printf("Error: No se pudo inicializar el dispositivo de audio.\n");
+        return 1;
+    }
+
+    // Configuración del stream de audio (44100Hz, 16bit, Mono)
+    SetAudioStreamBufferSizeDefault(4096);
+    AudioStream stream = LoadAudioStream(44100, 16, 1);
+    PlayAudioStream(stream);    // Empezamos el stream (aunque le enviaremos silencio por ahora)
+
+    // Variables para la generación de onda
+    float frequency = 440.0f;   // 440Hz (Nota La)
+    float sineIdx = 0.0f;
+
     // Fijamos los FPS a 60. Esto es CRÍTICO.
     // Raylib intentará dormir el proceso para mantener esta velocidad estable.
     // Esto nos servirá como reloj maestro para los Timers del CHIP-8.
@@ -89,6 +106,31 @@ int main(int argc, char **argv) {
         // Por lo tanto, los actualizamos una vez por vuelta del bucle principal.
         chip8_update_timers(&chip8);
 
+        // --- GESTIÓN DE SONIDO ---
+
+        if (chip8.sound_timer > 0) {
+            // Si el timer está activo, generamos datos de onda senoidal
+            if (IsAudioStreamProcessed(stream)) {
+                // Buffer temporal para enviar al stream
+                short *data = (short *)malloc(sizeof(short) * 4096);
+
+                // Rellenamos el buffer con la onda matemática
+                for (int k = 0; k < 4096; k++) {
+                    data[k] = (short)(32000.0f * sinf(2 * PI * frequency * sineIdx / 44100));
+                    sineIdx += 1.0f;
+                }
+
+                // Enviamos los datos a la tarjeta de sonido
+                UpdateAudioStream(stream, data, 4096);
+                free(data);
+            }
+        } else {
+            // Si el timer es 0, aseguramos silencio.
+            // Simplemente no actualizamos el stream con datos nuevos,
+            // o podríamos enviar ceros si quisiéramos limpiar el buffer explícitamente.
+            // Para simplificar, reiniciamos el índice de la onda para que no "cruja" al volver a empezar.
+            sineIdx = 0.0f;
+        }
         // --- C. RENDERIZADO (DIBUJO) ---
         BeginDrawing();
 
@@ -121,6 +163,8 @@ int main(int argc, char **argv) {
     }
 
     // 4. Limpieza
+    UnloadAudioStream(stream);
+    CloseAudioDevice();
     CloseWindow();  // Cierra ventana y contexto OpenGL
 
     return 0;
