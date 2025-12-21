@@ -18,6 +18,27 @@
 // 60 frames * 10 ciclos = 600 instrucciones por segundo.
 #define CYCLES_PER_FRAME 10
 
+// Mapa de teclas: Índice del array = Valor Hexadecimal CHIP8-8
+// Valor del array = Código de tecla de Raylib
+const int KEYMAP[16] = {
+    KEY_X,          // 0
+    KEY_ONE,        // 1
+    KEY_TWO,        // 2
+    KEY_THREE,      // 3
+    KEY_Q,          // 4
+    KEY_W,          // 5
+    KEY_E,          // 6
+    KEY_A,          // 7
+    KEY_S,          // 8
+    KEY_D,          // 9
+    KEY_Z,          // A
+    KEY_C,          // B
+    KEY_FOUR,       // C
+    KEY_R,          // D
+    KEY_F,          // E
+    KEY_V,          // F
+};
+
 int main(int argc, char **argv) {
     // 1. Verificación de argumentos
     if (argc != 2) {
@@ -45,6 +66,16 @@ int main(int argc, char **argv) {
 
     // Bucle principal: Se ejecuta mientras no cerramos la ventana
     while (!WindowShouldClose()) {
+
+        // --- GESTIÓN DE ENTRADA ---
+        // Actualizamos el estado del teclado virtual antes de que la CPU corra.
+        for (int i = 0; i < 16; i++) {
+            if (IsKeyDown(KEYMAP[i])) {
+                chip8.keypad[i] = true;     // Tecla presionada
+            } else {
+                chip8.keypad[i] = false;    // Tecla suelta
+            }
+        }
 
         // --- A. SIMULACIÓN DE CPU ---
         // Ejecutamos varios ciclos de CPU por cada frame de vídeo.

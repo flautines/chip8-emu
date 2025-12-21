@@ -334,6 +334,63 @@ void chip8_cycle(chip8_t *chip8) {
             break;
         }
 
+        case 0xE000:
+            switch (nn) {
+                // Ex9E - SKP Vx
+                // Salta la siguiente instrucción si la tecla guardada en Vx está presionada.
+                case 0x9E:{
+                    uint8_t key = chip8->V[x];  // ¿Qué tecla queremos revisar? (0-F)
+                    if (chip8->keypad[key]) {
+                        printf("Tecla %d presionada\n", key);
+                        chip8->pc += 2;
+                    }
+                }
+                break;
+
+                //ExA1 - SKNP Vx
+                // Salta la siguiente instrucción si la tecla guardada en Vx NO está presionada.
+                case 0xA1: {
+                    uint16_t key = chip8->V[x];
+                    if (!chip8->keypad[key]) {
+                        chip8->pc += 2;
+                    }
+                }
+                break;
+
+                default:
+                    printf("Opcode desconocido en 0xE...: %X\n", opcode);
+                    break;
+            }
+            break;
+
+        case 0xF000:
+            switch (nn) {
+                // ... (otros casos de Fx como los timers TODO)...
+
+                // Fx0A - LD Vx, K
+                // Espera por una tecla (Bloqueante)
+                case 0x0A: {
+                    bool key_pressed = false;
+
+                    // Recorremos nuestro array keypad para ver si algo está presionado
+                    for (int i = 0; i < 16; i++) {
+                        if (chip8->keypad[i]) {
+                            chip8->V[x] = i;    // Guardamos el índice de la tecla en Vx
+                            key_pressed = true;
+                            break;  // Ya encontramos una, salimos
+                        }
+                    }
+
+                    // Si NO se presionó ninguna tecla, retrocedemos el PC.
+                    // Esto hace que en el siguiente ciclo se vuelva a ejecutar ESTA instrucción.
+                    if (!key_pressed) {
+                        chip8->pc -= 2;
+                    }
+                }
+                break;
+            }
+            break;
+
         default:
             // Si llegamos aquí, encontramos un opcode desconocido.
             printf("Opcode desconocido: 0x%X\n", opcode);
