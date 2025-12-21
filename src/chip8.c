@@ -207,26 +207,15 @@ void chip8_cycle(chip8_t *chip8) {
                 case 0x4: {
                     // Usamos uint16_t para detectar el resultado real antes del corte
                     uint16_t sum = chip8->V[x] + chip8->V[y];
-
-                    if (sum > 255) {
-                        chip8->V[0xF] = 1;
-                    } else {
-                        chip8->V[0xF] = 0;
-                    }
-
-                    // Guardamos solo los 8 bits bajos
+                    chip8->V[0xF] = (sum > 255);
                     chip8->V[x] = sum & 0xFF;
-                    break;
                 }
+                    break;
 
                 // 8xy5 - SUB Vx, Vy
                 // Vx = Vx - Vy
                 case 0x5:
-                    if (chip8->V[x] > chip8->V[y]) {
-                        chip8->V[0xF] = 1;  // No hubo 'borrow' (resultado positivo)
-                    } else {
-                        chip8->V[0xF] = 0;  // Sí hubo 'borrow' (resultado negativo)
-                    }
+                    chip8->V[0xF] = (chip8->V[x] > chip8->V[y]);
                     chip8->V[x] -= chip8->V[y];
                     break;
                 
@@ -341,7 +330,6 @@ void chip8_cycle(chip8_t *chip8) {
                 case 0x9E:{
                     uint8_t key = chip8->V[x];  // ¿Qué tecla queremos revisar? (0-F)
                     if (chip8->keypad[key]) {
-                        printf("Tecla %d presionada\n", key);
                         chip8->pc += 2;
                     }
                 }
@@ -388,6 +376,47 @@ void chip8_cycle(chip8_t *chip8) {
                     }
                 }
                 break;
+
+                // Fx1E - ADD I, Vx
+                // I = I + Vx. (Afecta a VF en algunos modelos antiguos, pero no en el estándard moderno).
+                case 0x1E:
+                    chip8->I += chip8->V[x];
+                    break;
+
+                // Fx29 - LD F, Vx
+                // Configura I para apuntar a la ubicación del sprite del carácter hexadecimal en Vx.
+                // Recordamos que cargamos la fuente en 0x50, y cada carácter mide 5 bytes.
+                case 0x29:
+                    chip8->I = FONTSET_START_ADDRESS + (chip8->V[x] * 5);
+                    break;
+
+                // Fx33 - LD B, Vx (BCD - Binary Coded Decimal)
+                // Toma el valor de Vx (ej: 253) y lo separa en centenas, decenas y unidades en la memoria.
+                // memory[I] = 2, memory[I+1] = 5, memory[I+2] = 3.
+                case 0x33:
+                    chip8->memory[chip8->I]     = chip8->V[x] / 100;
+                    chip8->memory[chip8->I + 1] = (chip8->V[x] / 10) % 10;
+                    chip8->memory[chip8->I + 2] = chip8->V[x] % 10;
+                    break;
+
+                // Fx55 - LD [I], Vx
+                // Vuelca los registros V0 hasta Vx en la memoria, empezando en I.
+                case 0x55:
+                for (int i = 0; i <= x; i++) {
+                    chip8->memory[chip8->I + i] = chip8->V[i];
+                }
+                break;
+
+                // Fx65 - LD Vx, [I]
+                // Recupera de la memoria los valores para V0 hasta Vx.
+                case 0x65:
+                for (int i = 0; i <= x; i++) {
+                    chip8->V[i] = chip8->memory[chip8->I + i];
+                }
+                break;
+
+                default:
+                    printf("Opcode desconocido: 0x%X\n", opcode);    
             }
             break;
 
