@@ -175,7 +175,7 @@ void chip8_cycle(chip8_t *chip8) {
             chip8->V[x] += nn;
             break;
 
-        case 0x0800:
+        case 0x8000:
             // 8xyN - Operaciones entre Vx y Vy. El último dígito ( N ) determina la operación
             switch (opcode & 0x000F) {
                 // 8xy0 - LD Vx, Vy
