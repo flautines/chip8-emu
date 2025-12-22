@@ -76,6 +76,10 @@ int main(int argc, char **argv) {
     float frequency = 440.0f;   // 440Hz (Nota La)
     float sineIdx = 0.0f;
 
+    // Control de modo pausa y debug
+    bool debug_mode = false;    // Alternar con F1
+    bool paused = false;        // Alternar con P
+
     // Fijamos los FPS a 60. Esto es CRÍTICO.
     // Raylib intentará dormir el proceso para mantener esta velocidad estable.
     // Esto nos servirá como reloj maestro para los Timers del CHIP-8.
@@ -94,12 +98,34 @@ int main(int argc, char **argv) {
             }
         }
 
+        // Alterna entre modo Debug
+        if (IsKeyPressed(KEY_F1)) {
+            debug_mode = !debug_mode;
+        }
+
+        // Alterna entre modo Pause
+        if (IsKeyPressed(KEY_P)) {
+            paused = !paused;
+        }
+
         // --- A. SIMULACIÓN DE CPU ---
         // Ejecutamos varios ciclos de CPU por cada frame de vídeo.
         // Esto separa la velocidad de renderizado (60Hz) de la velocidad de procesamiento (~600Hz).
-        for (int i = 0; i < CYCLES_PER_FRAME; i++) {
-            chip8_cycle(&chip8);
+        if (!paused) {
+            // Ejecución normal a 600Hz (10 ciclos por frame)
+            for (int i = 0; i < CYCLES_PER_FRAME; i++) {
+                chip8_cycle(&chip8);
+            }
+        } else {
+            // Estamos en PAUSA.
+            // Solo avanzamos si el usuario presiona 'S' (Step)
+            if (IsKeyPressed(KEY_S)) {
+                chip8_cycle(&chip8);
+                // Opcional: Imprimir en consola también para tener historial
+                chip8_debug_print(&chip8);
+            }
         }
+        
 
         // --- B. ACTUALIZACIÓN DE TEMPORIZADORES ---
         // Los timers de CHIP-8 funcionan a 60Hz, igual que nuestro refresco de pantalla.
@@ -156,8 +182,35 @@ int main(int argc, char **argv) {
             }
         }
 
-        // Debug info en pantalla (Opcional)
-        // DrawText("Ejecutando...", 10, 10, 20, DARKGRAY);
+        // --- DIBUJADO DE DEBUG UI ---
+        if (debug_mode) {
+            // Fondo semitransparente para que el texto se lea bien
+            DrawRectangle(0, 0, 200, WINDOW_HEIGHT, Fade(BLUE, 0.9f));
+
+            // Dibujamos los registros
+            DrawText("REGISTROS", 10, 10, 10, WHITE);
+            for (int i = 0; i < 16; i++) {
+                char buffer[32];
+                sprintf(buffer, "V%X: 0x%02X", i, chip8.V[i]);
+                DrawText(buffer, 10, 30 + (i * 15), 10, WHITE);
+            }
+
+            char buffer[64];
+            sprintf(buffer, "PC: 0x%04X", chip8.pc);
+            DrawText(buffer, 10, 280, 10, YELLOW);
+
+            sprintf(buffer, "I:  0x%04X", chip8.I);
+            DrawText(buffer, 10, 300, 10, YELLOW);
+
+            sprintf(buffer, "SP: 0x%02X", chip8.sp);
+            DrawText(buffer, 10, 320, 10, YELLOW);
+
+            if (paused) {
+                DrawText("- PAUSADO -", 10, 350, 10, RED);
+                DrawText("Presiona 'S' para Step", 10, 370, 10, GRAY);
+            }
+        }
+        
 
         EndDrawing();
     }
