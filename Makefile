@@ -1,9 +1,15 @@
 # Nombre del compilador
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -Iinclude -g3 -Og -pedantic
+CFLAGS = -Wall -Wextra -std=c99 -Iinclude -pedantic
 # -Wall -Wextra: Activa todas las advertencias
 # -Iinclude: Busca archivos .h en nuestra carpeta include
 # -g3: Incluye información completa para el depurador DGB
+
+ifdef DEBUG
+	CFLAGS += -g3 -Og -DDEBUG
+else
+	CFLAGS += -O3 -DNDEBUG
+endif
 
 # Librerías para Raylib (Linux)
 LDFLAGS = -lraylib -lm -lpthread

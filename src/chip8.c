@@ -1,4 +1,5 @@
 #include "chip8.h"
+#include "debug.h"
 #include <stdio.h> // Para printf (útil para debug si una instrucción falla)
 
 // Los sprites de los caracteres hexadecimales (0-F).
@@ -94,6 +95,11 @@ void chip8_cycle(chip8_t *chip8) {
 
     // Usamos el primer nibble (4 bits más altos) para categorizar la instrucción.
     // Aplicamos una máscara AND con 0xF000.
+
+    // DEBUG
+#ifdef DEBUG
+    chip8_debug_print(chip8);
+#endif
 
     switch (opcode & 0xF000) {
 
