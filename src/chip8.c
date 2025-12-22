@@ -85,7 +85,7 @@ void chip8_cycle(chip8_t *chip8) {
     // N: Nibble bajo de 4 bits (Mascara 0x000F). Ej: DXYN.
     uint8_t n = opcode & 0x000F;
 
-    // X: Segundo niblle. Hay que desplazarlo 8 bits a la derecha pra que sea un índice (0-15).
+    // X: Segundo nibble. Hay que desplazarlo 8 bits a la derecha pra que sea un índice (0-15).
     // EJ: En 0x6A00, queremos que X sea 0xA (10), no 0xA00.
     uint8_t x = (opcode & 0x0F00) >> 8;
 
@@ -221,14 +221,14 @@ void chip8_cycle(chip8_t *chip8) {
                 // 8xy5 - SUB Vx, Vy
                 // Vx = Vx - Vy
                 case 0x5:
-                    chip8->V[0xF] = (chip8->V[x] > chip8->V[y]);
+                    chip8->V[0xF] = (chip8->V[x] >= chip8->V[y]);
                     chip8->V[x] -= chip8->V[y];
                     break;
                 
                 // 8xy7 - SUBN Vx, Vy
                 // Vx = Vy - Vx (Nota el orden invertido de la resta)
                 case 0x7:
-                    if (chip8->V[y] > chip8->V[x]) {
+                    if (chip8->V[y] >= chip8->V[x]) {
                         chip8->V[0xF] = 1;
                     } else {
                         chip8->V[0xF] = 0;
